@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Giám sát camera live và nhận diện khuôn mặt real-time">
+    <title>AI Biometrics - Giám sát Live</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <div>
+                    <h1>AI Biometrics</h1>
+                    <span class="brand-sub">Attendance System</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/teacher.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Lớp phụ trách</span></a></li>
+                <li class="nav-item"><a href="monitor.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></span><span>Giám sát Live</span></a></li>
+                <li class="nav-item"><a href="teacher-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="attendance.html" class="nav-link"><span class="nav-icon"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon></span><span>Điểm danh</span></a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status"><span class="status-dot"></span><span>Hệ thống hoạt động</span></div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title"><span class="title-icon"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></span>Giám sát Live</h2>
+                    <p class="page-subtitle">Camera trực tiếp & Nhận diện khuôn mặt real-time</p>
+                </div>
+                <div class="flex gap-sm">
+                    <select class="form-select" id="cameraClass" aria-label="Chọn lớp để giám sát"></select>
+                    <button class="btn btn-success" id="btnStartCamera" onclick="startCamera()"><ion-icon name="play-outline" aria-hidden="true"></ion-icon> Bật Camera</button>
+                    <button class="btn btn-danger" id="btnStopCamera" onclick="stopCamera()" style="display:none;"><ion-icon name="stop-outline" aria-hidden="true"></ion-icon> Tắt Camera</button>
+                    <button class="btn btn-primary" id="btnConnect" onclick="connectStream()"><ion-icon name="link-outline" aria-hidden="true"></ion-icon> Kết nối Stream</button>
+                </div>
+            </div>
+
+            <div class="grid-2">
+                <!-- Video Stream -->
+                <div class="card" style="grid-column: span 1;">
+                    <div class="card-header">
+                        <h3 class="card-title"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon> Camera Feed</h3>
+                        <div class="flex gap-sm">
+                            <span class="badge badge-info" id="fpsCounter">0 FPS</span>
+                            <span class="badge badge-success" id="streamStatus">Chưa kết nối</span>
+                        </div>
+                    </div>
+                    <div class="video-container" id="videoContainer" style="position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #000; min-height: 300px;">
+                        <img id="videoFeed" alt="Camera Feed" style="display:none; position: absolute; width: 100%; height: 100%; object-fit: contain;">
+                        <canvas id="bboxCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; pointer-events: none;"></canvas>
+                        <div class="empty-state" id="videoPlaceholder">
+                            <div class="empty-icon"><ion-icon name="camera-outline" aria-hidden="true"></ion-icon></div>
+                            <p>Nhấn "Bật Camera" để bắt đầu</p>
+                        </div>
+                        <div class="video-overlay">
+                            <div class="video-badge" id="liveBadge" style="display:none;">
+                                <span class="live-dot"></span>
+                                LIVE
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Processing stats -->
+                    <div class="flex-between mt-md" style="font-size:0.85rem;">
+                        <span class="text-muted">Processing: <strong id="processingTime">--</strong> ms</span>
+                        <span class="text-muted">Faces: <strong id="faceCount">0</strong></span>
+                        <span class="text-muted">Identified: <strong id="identifiedCount" class="text-success">0</strong></span>
+                    </div>
+                </div>
+
+                <!-- Recognition Feed -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title"><ion-icon name="scan-outline" aria-hidden="true"></ion-icon> Recognition Feed</h3>
+                        <button class="btn btn-outline" onclick="clearFeed()" style="font-size:0.8rem;"><ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Xóa</button>
+                    </div>
+                    <div class="recognition-feed" id="recognitionFeed">
+                        <div class="empty-state">
+                            <div class="empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
+                            <p>Đang chờ nhận diện khuôn mặt...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        let ws = null;
+        let frameCount = 0;
+        let lastFpsTime = Date.now();
+        let selectedCameraClass = '';
+
+        async function loadCameraClasses() {
+            try {
+                const classes = await apiFetch('/api/classes');
+                const select = document.getElementById('cameraClass');
+                select.innerHTML = classes.map(item =>
+                    `<option value="${escapeHtml(item.class_name)}">${escapeHtml(item.class_name)}</option>`
+                ).join('') || '<option value="">Chưa có lớp được phân công</option>';
+                selectedCameraClass = select.value;
+                select.addEventListener('change', () => { selectedCameraClass = select.value; });
+                document.getElementById('btnStartCamera').disabled = !selectedCameraClass;
+                document.getElementById('btnConnect').disabled = !selectedCameraClass;
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function startCamera() {
+            try {
+                if (!selectedCameraClass) throw new Error('Chưa chọn lớp được phân công');
+                const data = await apiFetch(`/api/camera/start?class_name=${encodeURIComponent(selectedCameraClass)}`, { method: 'POST' });
+                
+                if (data.status === 'started' || data.status === 'already_running') {
+                    document.getElementById('btnStartCamera').style.display = 'none';
+                    document.getElementById('btnStopCamera').style.display = 'inline-flex';
+                    showToast('Camera đã bật', 'success');
+                } else {
+                    showToast(data.message || 'Không thể mở camera', 'error');
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function stopCamera() {
+            try {
+                await apiFetch(`/api/camera/stop?class_name=${encodeURIComponent(selectedCameraClass)}`, { method: 'POST' });
+                document.getElementById('btnStartCamera').style.display = 'inline-flex';
+                document.getElementById('btnStopCamera').style.display = 'none';
+                disconnectStream();
+                showToast('Camera đã tắt', 'info');
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        function connectStream() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                disconnectStream();
+                return;
+            }
+
+            ws = new WebSocket(`${wsBaseUrl()}/api/camera/ws/stream?class_name=${encodeURIComponent(selectedCameraClass)}`);
+            ws.binaryType = 'arraybuffer';
+
+            ws.onopen = () => {
+                document.getElementById('streamStatus').textContent = 'Đã kết nối';
+                document.getElementById('streamStatus').className = 'badge badge-success';
+                document.getElementById('liveBadge').style.display = 'flex';
+                document.getElementById('videoPlaceholder').style.display = 'none';
+                document.getElementById('videoFeed').style.display = 'block';
+                document.getElementById('btnConnect').innerHTML = '<ion-icon name="unlink-outline" aria-hidden="true"></ion-icon> Ngắt kết nối';
+                showToast('Đã kết nối stream', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                if (event.data instanceof ArrayBuffer) {
+                    // Binary frame (JPEG)
+                    const blob = new Blob([event.data], { type: 'image/jpeg' });
+                    const url = URL.createObjectURL(blob);
+                    const img = document.getElementById('videoFeed');
+                    img.src = url;
+                    if (window._lastUrl) URL.revokeObjectURL(window._lastUrl);
+                    window._lastUrl = url;
+
+                    // FPS counter
+                    frameCount++;
+                    const now = Date.now();
+                    if (now - lastFpsTime >= 1000) {
+                        document.getElementById('fpsCounter').textContent = `${frameCount} FPS`;
+                        frameCount = 0;
+                        lastFpsTime = now;
+                    }
+                } else {
+                    // JSON message
+                    try {
+                        const data = JSON.parse(event.data);
+                        if (data.type === 'recognition') {
+                            handleRecognitionResult(data);
+                        }
+                    } catch (e) {
+                        console.error('Parse error:', e);
+                    }
+                }
+            };
+
+            ws.onclose = () => {
+                document.getElementById('streamStatus').textContent = 'Ngắt kết nối';
+                document.getElementById('streamStatus').className = 'badge badge-warning';
+                document.getElementById('liveBadge').style.display = 'none';
+                document.getElementById('btnConnect').innerHTML = '<ion-icon name="link-outline" aria-hidden="true"></ion-icon> Kết nối Stream';
+                
+                // Clear canvas on close
+                const canvas = document.getElementById('bboxCanvas');
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            };
+
+            ws.onerror = () => {
+                showToast('Lỗi kết nối WebSocket', 'error');
+            };
+        }
+
+        function disconnectStream() {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        }
+
+        function handleRecognitionResult(data) {
+            // Update stats
+            document.getElementById('processingTime').textContent = data.processing_time_ms || '--';
+            document.getElementById('faceCount').textContent = data.total_faces || 0;
+            document.getElementById('identifiedCount').textContent = data.identified || 0;
+
+            const feed = document.getElementById('recognitionFeed');
+            if (feed.querySelector('.empty-state')) feed.innerHTML = '';
+
+            // --- Vẽ Bounding Box Lên Canvas ---
+            const canvas = document.getElementById('bboxCanvas');
+            const videoFeed = document.getElementById('videoFeed');
+            
+            // Đảm bảo canvas có chung coordinate space logic với độ phân giải thực của webcam
+            const nW = videoFeed.naturalWidth || 640;
+            const nH = videoFeed.naturalHeight || 480;
+            
+            if (canvas.width !== nW || canvas.height !== nH) {
+                canvas.width = nW;
+                canvas.height = nH;
+            }
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (data.faces && data.faces.length > 0) {
+                data.faces.forEach(face => {
+                    const [x1, y1, x2, y2] = face.bbox;
+                    const rectW = x2 - x1;
+                    const rectH = y2 - y1;
+
+                    // 1. Vẽ bounding box
+                    const mainColor = face.identified ? '#10b981' : '#f43f5e';
+                    ctx.strokeStyle = mainColor;
+                    ctx.lineWidth = 3;
+                    
+                    // Vẽ box viền (Stroke Rect - rất an toàn và đảm bảo hoạt động)
+                    ctx.strokeRect(x1, y1, rectW, rectH);
+                    
+                    // Vẽ các góc (corner style) bằng nét cơ bản để tránh lỗi
+                    const cornerLen = Math.min(rectW, rectH) * 0.15;
+                    ctx.beginPath();
+                    ctx.lineWidth = 5;
+                    // Top-left
+                    ctx.moveTo(x1, y1 + cornerLen); ctx.lineTo(x1, y1); ctx.lineTo(x1 + cornerLen, y1);
+                    // Top-right
+                    ctx.moveTo(x2 - cornerLen, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1 + cornerLen);
+                    // Bottom-right
+                    ctx.moveTo(x2, y2 - cornerLen); ctx.lineTo(x2, y2); ctx.lineTo(x2 - cornerLen, y2);
+                    // Bottom-left
+                    ctx.moveTo(x1 + cornerLen, y2); ctx.lineTo(x1, y2); ctx.lineTo(x1, y2 - cornerLen);
+                    ctx.stroke();
+
+                    // Khung mờ nền nhẹ trong Box
+                    ctx.fillStyle = mainColor;
+                    ctx.globalAlpha = 0.15;
+                    ctx.fillRect(x1, y1, rectW, rectH);
+                    ctx.globalAlpha = 1.0;
+
+                    // 2. Vẽ Landmarks (nếu có)
+                    if (face.landmarks) {
+                        ctx.fillStyle = '#fbbf24';
+                        face.landmarks.forEach(pt => {
+                            ctx.beginPath();
+                            ctx.arc(pt[0], pt[1], 3, 0, Math.PI * 2);
+                            ctx.fill();
+                        });
+                    }
+
+                    // 3. Vẽ Label (Tên + ID)
+                    const name = face.full_name !== 'Unknown' && face.full_name ? face.full_name : 'Người lạ';
+                    const scoreText = `${Math.round(face.similarity * 100)}%`;
+                    const label = `${name} (${scoreText})`;
+                    
+                    ctx.font = 'bold 16px Inter, sans-serif';
+                    const textWidth = ctx.measureText(label).width;
+                    
+                    // BG cho label (Dùng fillRect thay vì roundRect tránh lỗi trên các Chrome cũ)
+                    const labelY = y1 - 30 > 0 ? y1 - 30 : y1;
+                    ctx.fillStyle = mainColor;
+                    ctx.fillRect(x1, labelY, textWidth + 15, 25);
+                    
+                    // Chữ
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(label, x1 + 7, labelY + 18);
+
+                    // --- Cập nhật Feed Recognition ---
+                    if (face.identified || face.similarity > 0.2) {
+                        const studentLabel = face.identified ? face.student_id : 'Không xác định';
+                        const existingItem = Array.from(feed.children).find(item => 
+                            item.querySelector('h4')?.textContent === studentLabel
+                        );
+                        
+                        if (existingItem) {
+                            existingItem.querySelector('p').innerHTML = `<strong>${escapeHtml(name)}</strong> • ${escapeHtml(scoreText)} • ${new Date().toLocaleTimeString('vi-VN')}`;
+                            feed.prepend(existingItem);
+                        } else {
+                            const item = document.createElement('div');
+                            item.className = `recognition-item ${face.identified ? 'identified' : 'unknown'}`;
+                            item.innerHTML = `
+                                <span class="rec-icon"><ion-icon name="${face.identified ? 'checkmark-circle-outline' : 'help-circle-outline'}" aria-hidden="true"></ion-icon></span>
+                                <div class="rec-info">
+                                    <h4>${escapeHtml(studentLabel)}</h4>
+                                    <p><strong>${escapeHtml(name)}</strong> • ${escapeHtml(scoreText)} • ${new Date().toLocaleTimeString('vi-VN')}</p>
+                                </div>
+                            `;
+                            feed.prepend(item);
+                        }
+                    }
+
+                    // Giới hạn 20 items trong feed
+                    while (feed.children.length > 20) feed.removeChild(feed.lastChild);
+                });
+            }
+        }
+
+        function clearFeed() {
+            document.getElementById('recognitionFeed').innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><ion-icon name="search-outline" aria-hidden="true"></ion-icon></div>
+                    <p>Đang chờ nhận diện khuôn mặt...</p>
+                </div>
+            `;
+        }
+
+
+
+        // Check camera status on load
+        apiFetch('/api/camera/status')
+            .then(data => {
+                if (data.running) {
+                    document.getElementById('btnStartCamera').style.display = 'none';
+                    document.getElementById('btnStopCamera').style.display = 'inline-flex';
+                }
+            });
+        loadCameraClasses();
+    </script>
+</body>
+</html>

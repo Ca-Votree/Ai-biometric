@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập - Hệ thống Điểm danh Sinh trắc học AI</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: var(--bg-primary);
+        }
+        .login-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xl);
+            padding: 40px;
+            width: 100%;
+            max-width: 440px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        .theme-toggle-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: var(--radius-full);
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: var(--transition);
+        }
+        .theme-toggle-btn:hover {
+            border-color: var(--primary);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text-bright);
+            font-size: 0.95rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: var(--transition);
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: #fff;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 1rem;
+            transition: var(--transition);
+            box-shadow: var(--shadow-glow);
+        }
+        .btn-submit:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        .role-tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 25px;
+            background: var(--bg-secondary);
+            padding: 4px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+        }
+        .role-tab {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+        .role-tab.active {
+            background: var(--primary);
+            color: #fff;
+        }
+        @media (max-width: 480px) {
+            .login-card {
+                padding: 32px 22px 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer" style="position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px;"></div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeToggleBtn">
+                <ion-icon name="contrast-outline" aria-hidden="true"></ion-icon>
+                Sáng / Tối
+            </button>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+                <div class="login-brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <h1 style="color: var(--text-bright); font-size: 1.5rem; margin-bottom: 5px;">AI Biometrics</h1>
+                <p style="color: var(--text-secondary); font-size: 0.9rem;">Hệ thống Điểm danh Sinh trắc học Thông minh</p>
+            </div>
+
+            <div class="role-tabs" role="group" aria-label="Chọn cổng đăng nhập">
+                <button class="role-tab active" id="tabTeacher" type="button" onclick="setRole('teacher')"><ion-icon name="school-outline" aria-hidden="true"></ion-icon> Giảng viên</button>
+                <button class="role-tab" id="tabAdmin" type="button" onclick="setRole('admin')"><ion-icon name="shield-checkmark-outline" aria-hidden="true"></ion-icon> Quản trị viên</button>
+            </div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label class="form-label" id="idLabel">Mã Giảng Viên (ID)</label>
+                    <input type="text" id="userId" class="form-control" placeholder="Nhập ID giảng viên..." autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Mật khẩu</label>
+                    <input type="password" id="password" class="form-control" placeholder="Nhập mật khẩu..." autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn-submit" id="submitBtn"><ion-icon name="log-in-outline" aria-hidden="true"></ion-icon> Đăng nhập Giảng viên</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        let selectedRole = new URLSearchParams(window.location.search).get('role') === 'admin' ? 'admin' : 'teacher';
+
+        function setRole(role) {
+            selectedRole = role;
+            document.getElementById('tabTeacher').classList.toggle('active', role === 'teacher');
+            document.getElementById('tabAdmin').classList.toggle('active', role === 'admin');
+            document.getElementById('tabTeacher').setAttribute('aria-pressed', String(role === 'teacher'));
+            document.getElementById('tabAdmin').setAttribute('aria-pressed', String(role === 'admin'));
+
+            const idLabel = document.getElementById('idLabel');
+            const userIdInput = document.getElementById('userId');
+            const submitBtn = document.getElementById('submitBtn');
+            const next = new URLSearchParams(window.location.search).get('next');
+            const query = new URLSearchParams({ role });
+            if (next) query.set('next', next);
+            window.history.replaceState(null, '', `${window.location.pathname}?${query}`);
+
+            if (role === 'admin') {
+                idLabel.textContent = 'Tên tài khoản Admin';
+                userIdInput.placeholder = 'Nhập ID quản trị viên...';
+                userIdInput.value = '';
+                submitBtn.innerHTML = '<ion-icon name="log-in-outline" aria-hidden="true"></ion-icon> Đăng nhập Quản trị viên';
+            } else {
+                idLabel.textContent = 'Mã Giảng Viên (ID)';
+                userIdInput.placeholder = 'Nhập ID giảng viên...';
+                userIdInput.value = '';
+                submitBtn.innerHTML = '<ion-icon name="log-in-outline" aria-hidden="true"></ion-icon> Đăng nhập Giảng viên';
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const button = document.getElementById('submitBtn');
+            button.disabled = true;
+            try {
+                await apiPost('/api/auth/login', {
+                    user_id: document.getElementById('userId').value.trim(),
+                    password: document.getElementById('password').value,
+                    role: selectedRole,
+                });
+                const requestedPath = new URLSearchParams(window.location.search).get('next');
+                const nextUrl = requestedPath ? new URL(requestedPath, window.location.origin) : new URL('/', window.location.origin);
+                const safePath = nextUrl.origin === window.location.origin ? nextUrl.pathname + nextUrl.search : '/';
+                window.location.replace(safePath);
+            } catch (error) {
+                showToast(error.message, 'error');
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Init theme
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', savedTheme);
+        setRole(selectedRole);
+    </script>
+</body>
+</html>

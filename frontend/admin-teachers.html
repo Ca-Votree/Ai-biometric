@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý tài khoản giảng viên">
+    <title>AI Biometrics - Tài khoản giảng viên</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand"><div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div><div><h1>AI Biometrics</h1><span class="brand-sub">Khu vực quản trị</span></div></div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/admin.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Tổng quan</span></a></li>
+                <li class="nav-item"><a href="/admin-teachers.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Tài khoản giảng viên</span></a></li>
+                <li class="nav-item"><a href="/admin-classes.html" class="nav-link"><span class="nav-icon"><ion-icon name="business-outline" aria-hidden="true"></ion-icon></span><span>Lớp &amp; camera</span></a></li>
+                <li class="nav-item"><a href="/admin-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="school-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/admin-schedules.html" class="nav-link"><span class="nav-icon"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon></span><span>Lịch học</span></a></li>
+                <li class="nav-item"><a href="/admin-settings.html" class="nav-link"><span class="nav-icon"><ion-icon name="options-outline" aria-hidden="true"></ion-icon></span><span>Cấu hình hệ thống</span></a></li>
+                <li class="nav-item"><a href="/admin-audit.html" class="nav-link"><span class="nav-icon"><ion-icon name="list-outline" aria-hidden="true"></ion-icon></span><span>Nhật ký hoạt động</span></a></li>
+                <li class="nav-item"><a href="/admin-backup.html" class="nav-link"><span class="nav-icon"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></span><span>Sao lưu</span></a></li>
+            </ul>
+            <div class="sidebar-footer"><div class="system-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span></div></div>
+        </aside>
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <div class="page-header"><div><h2 class="page-title">Tài khoản giảng viên</h2><p class="page-subtitle">Tạo tài khoản, quản lý trạng thái và đặt lại mật khẩu.</p></div></div>
+            <section class="card mb-lg">
+                <div class="card-header"><h3 class="card-title">Tạo tài khoản giảng viên</h3></div>
+                <form class="admin-form" onsubmit="createTeacher(event)">
+                    <input type="text" id="teacherUserId" class="form-input" placeholder="ID đăng nhập (VD: GV01)" aria-label="ID đăng nhập" pattern="[A-Za-z0-9._\x2d]{3,64}" required>
+                    <input type="text" id="teacherFullName" class="form-input" placeholder="Họ và tên giảng viên" aria-label="Họ và tên giảng viên" maxlength="100" required>
+                    <input type="password" id="teacherPassword" class="form-input" placeholder="Mật khẩu (ít nhất 12 ký tự)" aria-label="Mật khẩu giảng viên" minlength="12" autocomplete="new-password" required>
+                    <button type="submit" class="btn btn-primary"><ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> Tạo tài khoản</button>
+                </form>
+            </section>
+            <section class="card">
+                <div class="card-header"><h3 class="card-title">Danh sách tài khoản</h3><button class="btn btn-outline" type="button" onclick="loadTeachers()">Làm mới</button></div>
+                <div class="table-container"><table class="data-table">
+                    <thead><tr><th>Tên</th><th>ID</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+                    <tbody id="teacherAccounts"><tr><td colspan="4" class="text-muted">Đang tải...</td></tr></tbody>
+                </table></div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function createTeacher(event) {
+            event.preventDefault();
+            const form = event.target;
+            try {
+                const result = await apiPost('/api/auth/teachers', {
+                    user_id: document.getElementById('teacherUserId').value.trim(),
+                    full_name: document.getElementById('teacherFullName').value.trim(),
+                    password: document.getElementById('teacherPassword').value,
+                });
+                showToast(result.message, 'success');
+                form.reset();
+                await loadTeachers();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function loadTeachers() {
+            try {
+                const data = await apiFetch('/api/auth/teachers');
+                const body = document.getElementById('teacherAccounts');
+                body.innerHTML = data.teachers.length ? data.teachers.map(teacher => `
+                    <tr>
+                        <td>${escapeHtml(teacher.full_name)}</td>
+                        <td>${escapeHtml(teacher.user_id)}</td>
+                        <td><span class="badge ${teacher.is_active ? 'badge-success' : 'badge-warning'}">${teacher.is_active ? 'Hoạt động' : 'Đã khóa'}</span></td>
+                        <td>
+                            <button class="btn btn-outline teacher-status-btn" type="button" data-user-id="${escapeHtml(teacher.user_id)}" data-active="${!teacher.is_active}">${teacher.is_active ? 'Khóa' : 'Mở khóa'}</button>
+                            <button class="btn btn-outline teacher-password-btn" type="button" data-user-id="${escapeHtml(teacher.user_id)}">Đặt mật khẩu</button>
+                        </td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" class="text-muted">Chưa có tài khoản giảng viên.</td></tr>';
+                body.querySelectorAll('.teacher-status-btn').forEach(button => button.addEventListener('click', () => setTeacherStatus(button.dataset.userId, button.dataset.active === 'true')));
+                body.querySelectorAll('.teacher-password-btn').forEach(button => button.addEventListener('click', () => resetTeacherPassword(button.dataset.userId)));
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function setTeacherStatus(userId, isActive) {
+            try {
+                await apiFetch(`/api/auth/teachers/${encodeURIComponent(userId)}`, {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: isActive }),
+                });
+                showToast(isActive ? 'Đã mở khóa tài khoản' : 'Đã khóa tài khoản', 'success');
+                await loadTeachers();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function resetTeacherPassword(userId) {
+            const password = prompt(`Nhập mật khẩu mới cho ${userId} (ít nhất 12 ký tự):`);
+            if (password === null) return;
+            if (password.length < 12) {
+                showToast('Mật khẩu phải có ít nhất 12 ký tự', 'error');
+                return;
+            }
+            try {
+                const result = await apiPost(`/api/auth/teachers/${encodeURIComponent(userId)}/password`, { password });
+                showToast(result.message, 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        loadTeachers();
+    </script>
+</body>
+</html>

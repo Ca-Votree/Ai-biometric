@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý phiên điểm danh và xem kết quả">
+    <title>AI Biometrics - Điểm danh</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <div>
+                    <h1>AI Biometrics</h1>
+                    <span class="brand-sub">Attendance System</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/teacher.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Lớp phụ trách</span></a></li>
+                <li class="nav-item"><a href="monitor.html" class="nav-link"><span class="nav-icon"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></span><span>Giám sát Live</span></a></li>
+                <li class="nav-item"><a href="teacher-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="attendance.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon></span><span>Điểm danh</span></a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status"><span class="status-dot"></span><span>Hệ thống hoạt động</span></div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title"><span class="title-icon"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon></span>Điểm danh</h2>
+                    <p class="page-subtitle">Quản lý phiên điểm danh và xem kết quả</p>
+                </div>
+                <button class="btn btn-primary btn-lg" id="createSessionButton" onclick="showCreateSession()"><ion-icon name="add-outline" aria-hidden="true"></ion-icon> Tạo phiên mới</button>
+            </div>
+
+            <!-- Active Session Banner -->
+            <div class="card mb-lg" id="activeSessionCard" style="display:none; border-left:3px solid var(--success);">
+                <div class="flex-between">
+                    <div>
+                        <span class="badge badge-success mb-md"><ion-icon name="radio-button-on-outline" aria-hidden="true"></ion-icon> Đang hoạt động</span>
+                        <h3 style="color:var(--text-bright);margin-top:0.3rem;" id="activeSessionName">--</h3>
+                        <p class="text-muted mt-sm" id="activeSessionInfo">--</p>
+                    </div>
+                    <div class="flex gap-sm">
+                        <a href="monitor.html" class="btn btn-primary"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon> Giám sát</a>
+                        <button class="btn btn-danger" onclick="endActiveSession()"><ion-icon name="stop-outline" aria-hidden="true"></ion-icon> Kết thúc</button>
+                    </div>
+                </div>
+                <div class="stats-grid mt-lg" style="margin-bottom:0;">
+                    <div class="stat-card">
+                        <div class="stat-icon green"><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon></div>
+                        <div class="stat-info">
+                            <div class="stat-value" id="activeAttCount">0</div>
+                            <div class="stat-label">Đã điểm danh</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Records for Active Session -->
+            <div class="card mb-lg" id="activeRecords" style="display:none;">
+                <div class="card-header">
+                    <h3 class="card-title"><ion-icon name="list-outline" aria-hidden="true"></ion-icon> Danh sách lớp &amp; duyệt điểm danh</h3>
+                    <button class="btn btn-outline" onclick="loadActiveRecords()" style="font-size:0.85rem;"><ion-icon name="refresh-outline" aria-hidden="true"></ion-icon> Làm mới</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Mã SV</th>
+                                <th>Họ tên</th>
+                                <th>Lớp</th>
+                                <th>Thời gian</th>
+                                <th>Similarity</th>
+                                <th>Phương thức</th>
+                                <th>Trạng thái</th>
+                                <th>Duyệt / sửa</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Session History -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon> Lịch sử phiên điểm danh</h3>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên phiên</th>
+                                <th>Môn học</th>
+                                <th>Phòng</th>
+                                <th>Bắt đầu</th>
+                                <th>Kết thúc</th>
+                                <th>Số SV</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sessionHistory">
+                            <tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card mt-lg">
+                <div class="card-header">
+                    <h3 class="card-title"><ion-icon name="analytics-outline" aria-hidden="true"></ion-icon> Báo cáo chuyên cần</h3>
+                    <a class="btn btn-outline" id="reportExport" href="/api/attendance/reports/export.csv"><ion-icon name="download-outline" aria-hidden="true"></ion-icon> Xuất CSV</a>
+                </div>
+                <div class="admin-form">
+                    <select class="form-select" id="reportClass"><option value="">Tất cả lớp được phép</option></select>
+                    <input class="form-input" type="date" id="reportStartDate" aria-label="Từ ngày">
+                    <input class="form-input" type="date" id="reportEndDate" aria-label="Đến ngày">
+                    <button class="btn btn-primary" type="button" onclick="loadAttendanceReport()">Xem báo cáo</button>
+                </div>
+                <div class="table-container mt-md">
+                    <table class="data-table">
+                        <thead><tr><th>Ngày</th><th>Lớp</th><th>Phiên / môn</th><th>Có mặt</th><th>Đi trễ</th><th>Vắng</th><th>Tỷ lệ</th></tr></thead>
+                        <tbody id="attendanceReportBody"><tr><td colspan="7" class="text-muted">Chọn bộ lọc để xem báo cáo.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Create Session Modal -->
+    <div class="modal-backdrop" id="createSessionModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title"><ion-icon name="add-circle-outline" aria-hidden="true"></ion-icon> Tạo phiên điểm danh</h3>
+                <button class="modal-close" aria-label="Đóng" onclick="hideCreateSession()"><ion-icon name="close-outline" aria-hidden="true"></ion-icon></button>
+            </div>
+            <form onsubmit="createSession(event)">
+                <div class="form-group">
+                    <label class="form-label">Lớp *</label>
+                    <select class="form-select" name="class_name" id="sessionClass" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tên phiên *</label>
+                    <input type="text" class="form-input" name="session_name" required 
+                        placeholder="VD: Tin học đại cương - Buổi 5">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Môn học</label>
+                    <input type="text" class="form-input" name="course_name" placeholder="Tin học đại cương">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phòng</label>
+                    <input type="text" class="form-input" name="room" placeholder="A301">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Giảng viên</label>
+                    <input type="text" class="form-input" name="instructor" placeholder="TS. Nguyễn Văn A">
+                </div>
+                <div class="flex gap-sm" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="hideCreateSession()">Hủy</button>
+                    <button type="submit" class="btn btn-success">Tạo phiên</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        let activeSessionId = null;
+        let activeSessionLocked = false;
+
+        async function loadPage() {
+            await loadClasses();
+            await checkActiveSession();
+            await loadSessionHistory();
+        }
+
+        async function loadClasses() {
+            try {
+                const classes = await apiFetch('/api/classes');
+                const options = classes.map(item => `<option value="${escapeHtml(item.class_name)}">${escapeHtml(item.class_name)}</option>`).join('');
+                document.getElementById('sessionClass').innerHTML = options || '<option value="">Chưa có lớp được phân công</option>';
+                document.getElementById('reportClass').innerHTML = '<option value="">Tất cả lớp được phép</option>' + options;
+                document.getElementById('createSessionButton').disabled = !classes.length;
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function checkActiveSession() {
+            try {
+                const data = await apiFetch('/api/attendance/sessions/active');
+                
+                const card = document.getElementById('activeSessionCard');
+                const records = document.getElementById('activeRecords');
+                
+                if (data.active && data.session) {
+                    activeSessionId = data.session.id;
+                    activeSessionLocked = data.session.status === 'locked';
+                    card.style.display = 'block';
+                    records.style.display = 'block';
+                    document.getElementById('activeSessionName').textContent = data.session.session_name;
+                    document.getElementById('activeSessionInfo').textContent = 
+                        `${data.session.course_name || ''} • ${data.session.room || ''} • ${data.session.instructor || ''}`;
+                    document.getElementById('activeAttCount').textContent = data.session.total_recognized;
+                    
+                    loadActiveRecords();
+                } else {
+                    activeSessionId = null;
+                    card.style.display = 'none';
+                    records.style.display = 'none';
+                }
+            } catch (err) {
+                console.error('Check session error:', err);
+            }
+        }
+
+        async function loadActiveRecords() {
+            if (!activeSessionId) return;
+            try {
+                const data = await apiFetch(`/api/attendance/sessions/${activeSessionId}/records`);
+                
+                const tbody = document.getElementById('recordsBody');
+                if (!data.records || data.records.length === 0) {
+                    tbody.innerHTML = `                    <tr><td colspan="9" class="text-center text-muted">Chưa có ai điểm danh</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.records.map((r, i) => `
+                    <tr>
+                        <td>${i + 1}</td>
+                        <td><strong>${escapeHtml(r.student_id)}</strong></td>
+                        <td>${escapeHtml(r.full_name)}</td>
+                        <td>${escapeHtml(r.class_name || '--')}</td>
+                        <td>${r.check_in_time ? new Date(r.check_in_time).toLocaleTimeString('vi-VN') : '--'}</td>
+                        <td>${r.similarity_score == null ? '--' : `<span class="badge badge-success">${(r.similarity_score * 100).toFixed(1)}%</span>`}</td>
+                        <td><span class="badge badge-info">${escapeHtml(r.method)}</span></td>
+                        <td><span class="badge ${r.status === 'present' ? 'badge-success' : r.status === 'late' ? 'badge-warning' : r.status === 'absent' ? 'badge-danger' : 'badge-info'}">${escapeHtml(r.status)}</span></td>
+                        <td>${activeSessionLocked ? '' : `
+                            <select class="form-select record-status" data-student-id="${escapeHtml(r.student_id)}">
+                                <option value="present" ${r.status === 'present' ? 'selected' : ''}>Có mặt</option>
+                                <option value="late" ${r.status === 'late' ? 'selected' : ''}>Đi trễ</option>
+                                <option value="absent" ${r.status === 'absent' ? 'selected' : ''}>Vắng</option>
+                                <option value="rejected" ${r.status === 'rejected' ? 'selected' : ''}>Từ chối</option>
+                            </select>
+                            <button class="btn btn-outline save-record-btn" type="button" data-student-id="${escapeHtml(r.student_id)}">Lưu</button>`}</td>
+                    </tr>
+                `).join('');
+                tbody.querySelectorAll('.save-record-btn').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const select = [...tbody.querySelectorAll('.record-status')].find(item => item.dataset.studentId === button.dataset.studentId);
+                        if (select) saveAttendanceDecision(button.dataset.studentId, select.value);
+                    });
+                });
+                document.getElementById('activeAttCount').textContent = data.records.filter(record => record.status !== 'pending').length;
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function loadSessionHistory() {
+            try {
+                const data = await apiFetch('/api/attendance/sessions');
+                
+                const tbody = document.getElementById('sessionHistory');
+                if (!data.sessions || data.sessions.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="9" class="text-center text-muted" style="padding:2rem;">Chưa có phiên nào</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.sessions.map(s => `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td><strong>${escapeHtml(s.session_name)}</strong></td>
+                        <td>${escapeHtml(s.course_name || '--')}</td>
+                        <td>${escapeHtml(s.room || '--')}</td>
+                        <td>${s.start_time ? new Date(s.start_time).toLocaleString('vi-VN') : '--'}</td>
+                        <td>${s.end_time ? new Date(s.end_time).toLocaleString('vi-VN') : '--'}</td>
+                        <td><strong>${s.total_recognized}</strong></td>
+                        <td>${s.is_active 
+                            ? '<span class="badge badge-success">Đang chạy</span>' 
+                            : `<span class="badge badge-info">${escapeHtml(s.status)}</span>`
+                        }</td>
+                        <td><button class="btn btn-outline" type="button" onclick="openSessionRecords(${s.id}, '${escapeHtml(s.status)}')">Xem / duyệt</button>
+                            ${s.status === 'review' ? `<button class="btn btn-outline" type="button" onclick="lockSession(${s.id})">Khóa</button>` : ''}
+                            <a class="btn btn-outline" href="/api/attendance/sessions/${s.id}/export.csv">CSV</a></td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function createSession(event) {
+            event.preventDefault();
+            const form = event.target;
+            const body = {
+                session_name: form.session_name.value,
+                course_name: form.course_name.value || null,
+                room: form.room.value || null,
+                instructor: form.instructor.value || null,
+                class_name: form.class_name.value,
+            };
+            try {
+                await apiPost('/api/attendance/sessions', body);
+                showToast('Đã tạo phiên điểm danh', 'success');
+                hideCreateSession();
+                form.reset();
+                loadPage();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function openSessionRecords(sessionId, status) {
+            activeSessionId = sessionId;
+            activeSessionLocked = status === 'locked';
+            document.getElementById('activeRecords').style.display = 'block';
+            await loadActiveRecords();
+            document.getElementById('activeRecords').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        async function saveAttendanceDecision(studentId, status) {
+            const reason = prompt('Nhập lý do xác nhận hoặc chỉnh sửa (bắt buộc):');
+            if (reason === null) return;
+            if (reason.trim().length < 3) {
+                showToast('Lý do cần ít nhất 3 ký tự', 'error');
+                return;
+            }
+            try {
+                await apiFetch(`/api/attendance/sessions/${activeSessionId}/records/${encodeURIComponent(studentId)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status, note: reason.trim() }),
+                });
+                showToast('Đã lưu quyết định và nhật ký chỉnh sửa', 'success');
+                await loadActiveRecords();
+                await loadSessionHistory();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function loadAttendanceReport() {
+            try {
+                const params = new URLSearchParams();
+                const className = document.getElementById('reportClass').value;
+                const start = document.getElementById('reportStartDate').value;
+                const end = document.getElementById('reportEndDate').value;
+                if (className) params.set('class_name', className);
+                if (start) params.set('start_date', start);
+                if (end) params.set('end_date', end);
+                const suffix = params.toString();
+                const data = await apiFetch(`/api/attendance/reports${suffix ? `?${suffix}` : ''}`);
+                const body = document.getElementById('attendanceReportBody');
+                body.innerHTML = data.reports.length ? data.reports.map(row => `
+                    <tr>
+                        <td>${new Date(row.start_time).toLocaleDateString('vi-VN')}</td>
+                        <td>${escapeHtml(row.class_name || '--')}</td>
+                        <td>${escapeHtml(row.session_name)} · ${escapeHtml(row.course_name || '')}</td>
+                        <td>${row.present}</td><td>${row.late}</td><td>${row.absent}</td><td>${row.attendance_rate}%</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="7" class="text-muted">Không có dữ liệu trong khoảng thời gian này.</td></tr>';
+                document.getElementById('reportExport').href = `/api/attendance/reports/export.csv${suffix ? `?${suffix}` : ''}`;
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function endActiveSession() {
+            if (!activeSessionId) return;
+            if (!confirm('Bạn có chắc muốn kết thúc phiên điểm danh này?')) return;
+            
+            try {
+                await apiPost(`/api/attendance/sessions/${activeSessionId}/end`);
+                showToast('Đã kết thúc phiên điểm danh', 'success');
+                loadPage();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function lockSession(sessionId) {
+            if (!confirm('Khóa kết quả phiên này? Sau khi khóa sẽ không thể chỉnh sửa.')) return;
+            try {
+                await apiFetch(`/api/attendance/sessions/${sessionId}/lock`, { method: 'POST' });
+                showToast('Đã khóa kết quả điểm danh', 'success');
+                await loadSessionHistory();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        function showCreateSession() { document.getElementById('createSessionModal').classList.add('active'); }
+        function hideCreateSession() { document.getElementById('createSessionModal').classList.remove('active'); }
+
+
+
+        loadPage();
+        // Auto-refresh records
+        setInterval(() => { if (activeSessionId) loadActiveRecords(); }, 5000);
+    </script>
+</body>
+</html>

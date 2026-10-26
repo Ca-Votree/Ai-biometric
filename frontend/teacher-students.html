@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Danh sách sinh viên trong các lớp được phân công">
+    <title>AI Biometrics - Sinh viên lớp phụ trách</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <div><h1>AI Biometrics</h1><span class="brand-sub">Khu vực giảng viên</span></div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/teacher.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Lớp phụ trách</span></a></li>
+                <li class="nav-item"><a href="/monitor.html" class="nav-link"><span class="nav-icon"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></span><span>Giám sát Live</span></a></li>
+                <li class="nav-item"><a href="/teacher-students.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/attendance.html" class="nav-link"><span class="nav-icon"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon></span><span>Điểm danh</span></a></li>
+            </ul>
+            <div class="sidebar-footer"><div class="system-status"><span class="status-dot"></span><span>Hệ thống hoạt động</span></div></div>
+        </aside>
+
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title"><span class="title-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span>Sinh viên lớp phụ trách</h2>
+                    <p class="page-subtitle">Chỉ xem danh sách sinh viên thuộc các lớp được phân công.</p>
+                </div>
+                <select class="form-select" id="classFilter" aria-label="Lọc theo lớp"></select>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></div>
+                    <div class="stat-info"><div class="stat-value" id="studentCount">0</div><div class="stat-label">Sinh viên trong lớp</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon></div>
+                    <div class="stat-info"><div class="stat-value" id="faceCount">0</div><div class="stat-label">Đã đăng ký khuôn mặt</div></div>
+                </div>
+            </div>
+            <section class="card">
+                <div class="card-header"><h3 class="card-title">Danh sách sinh viên</h3></div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead><tr><th>Mã SV</th><th>Họ tên</th><th>Lớp</th><th>Khoa</th><th>Đăng ký khuôn mặt</th></tr></thead>
+                        <tbody id="studentTableBody"><tr><td colspan="5" class="text-center text-muted">Đang tải...</td></tr></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <div class="toast-container" id="toastContainer"></div>
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function loadStudents() {
+            const className = document.getElementById('classFilter').value;
+            const body = document.getElementById('studentTableBody');
+            if (!className) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Chọn lớp được phân công để xem sinh viên.</td></tr>';
+                document.getElementById('studentCount').textContent = '0';
+                document.getElementById('faceCount').textContent = '0';
+                return;
+            }
+            try {
+                const data = await apiFetch(`/api/students?class_name=${encodeURIComponent(className)}`);
+                const students = data.students;
+                document.getElementById('studentCount').textContent = students.length;
+                document.getElementById('faceCount').textContent = students.filter(student => student.face_registered).length;
+                body.innerHTML = students.length ? students.map(student => `
+                    <tr>
+                        <td><strong>${escapeHtml(student.student_id)}</strong></td>
+                        <td>${escapeHtml(student.full_name)}</td>
+                        <td>${escapeHtml(student.class_name || '--')}</td>
+                        <td>${escapeHtml(student.department || '--')}</td>
+                        <td><span class="badge ${student.face_registered ? 'badge-success' : 'badge-warning'}">${student.face_registered ? 'Đã đăng ký' : 'Chưa đăng ký'}</span></td>
+                    </tr>
+                `).join('') : '<tr><td colspan="5" class="text-center text-muted">Lớp chưa có sinh viên.</td></tr>';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function initializeStudentList() {
+            try {
+                const { user } = await apiFetch('/api/auth/me');
+                if (user.role !== 'teacher') {
+                    window.location.replace('/admin.html');
+                    return;
+                }
+                const classes = await apiFetch('/api/classes');
+                const select = document.getElementById('classFilter');
+                select.innerHTML = classes.map(item => `<option value="${escapeHtml(item.class_name)}">${escapeHtml(item.class_name)}</option>`).join('')
+                    || '<option value="">Chưa được phân công lớp</option>';
+                select.addEventListener('change', loadStudents);
+                await loadStudents();
+            } catch (error) {
+                if (error.status === 401) {
+                    window.location.replace('/login?next=%2Fteacher-students.html');
+                    return;
+                }
+                showToast(error.message, 'error');
+            }
+        }
+
+        initializeStudentList();
+    </script>
+</body>
+</html>

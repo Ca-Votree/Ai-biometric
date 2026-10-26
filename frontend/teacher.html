@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Bảng điều khiển lớp học dành cho giảng viên">
+    <title>AI Biometrics - Khu vực giảng viên</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <div>
+                    <h1>AI Biometrics</h1>
+                    <span class="brand-sub">Khu vực giảng viên</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/teacher.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Lớp phụ trách</span></a></li>
+                <li class="nav-item"><a href="/monitor.html" class="nav-link"><span class="nav-icon"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></span><span>Giám sát Live</span></a></li>
+                <li class="nav-item"><a href="/teacher-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/attendance.html" class="nav-link"><span class="nav-icon"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon></span><span>Điểm danh</span></a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span></div>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <header class="dashboard-header">
+                <div class="page-header">
+                    <div>
+                        <h2 class="page-title">Lớp học của tôi</h2>
+                        <p class="page-subtitle">Xem các lớp được phân công, danh sách sinh viên và công cụ điểm danh</p>
+                    </div>
+                </div>
+                <span class="badge badge-success">Giảng viên</span>
+            </header>
+
+            <section class="dashboard-grid">
+                <aside class="card dashboard-sidebar">
+                    <h3>Lớp được phân công</h3>
+                    <p class="section-caption">Bạn chỉ thấy các lớp do quản trị viên giao.</p>
+                    <div class="class-list" id="teacherClassList" aria-live="polite">
+                        <p class="text-muted">Đang tải lớp học...</p>
+                    </div>
+                </aside>
+                <div class="dashboard-main">
+                    <section class="card">
+                        <div class="flex-between" style="margin-bottom:18px;">
+                            <div>
+                                <h2 class="card-title" id="selectedClassName">Chưa chọn lớp</h2>
+                                <p class="dashboard-meta" id="selectedClassMeta">Chọn lớp được phân công để xem thông tin.</p>
+                            </div>
+                            <div class="flex gap-sm">
+                                <a class="btn btn-outline" id="openStudents" href="/teacher-students.html"><ion-icon name="people-outline" aria-hidden="true"></ion-icon> Sinh viên</a>
+                                <a class="btn btn-primary" id="openAttendance" href="/attendance.html"><ion-icon name="clipboard-outline" aria-hidden="true"></ion-icon> Điểm danh</a>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon blue"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></div>
+                                <div class="stat-info"><div class="stat-value" id="classStudentCount">0</div><div class="stat-label">Sinh viên trong lớp</div></div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon green"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon></div>
+                                <div class="stat-info"><div class="stat-value" id="classCameraStatus">--</div><div class="stat-label">Trạng thái camera</div></div>
+                            </div>
+                        </div>
+                    </section>
+                    <section class="card mt-lg">
+                        <div class="card-header">
+                            <h3 class="card-title"><ion-icon name="people-outline" aria-hidden="true"></ion-icon> Danh sách sinh viên</h3>
+                            <a class="btn btn-outline" id="viewClassCamera" href="/monitor.html"><ion-icon name="videocam-outline" aria-hidden="true"></ion-icon> Mở giám sát</a>
+                        </div>
+                        <div id="teacherStudentList" aria-live="polite"><p class="text-muted">Chọn một lớp để xem danh sách sinh viên.</p></div>
+                    </section>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function selectTeacherClass(className, cameraSource) {
+            document.querySelectorAll('.teacher-class-item').forEach(button => {
+                button.classList.toggle('active', button.dataset.className === className);
+            });
+            document.getElementById('selectedClassName').textContent = className;
+            document.getElementById('selectedClassMeta').textContent = 'Lớp được quản trị viên phân công cho bạn.';
+            document.getElementById('classCameraStatus').textContent = cameraSource || 'Chưa cấu hình';
+            document.getElementById('viewClassCamera').href = `/monitor.html?class_name=${encodeURIComponent(className)}`;
+            try {
+                const data = await apiFetch(`/api/students?class_name=${encodeURIComponent(className)}`);
+                document.getElementById('classStudentCount').textContent = data.students.length;
+                const list = document.getElementById('teacherStudentList');
+                list.innerHTML = data.students.length ? data.students.map(student => `
+                    <div class="student-item">
+                        <div class="student-avatar">${escapeHtml((student.full_name || '?').charAt(0))}</div>
+                        <div class="student-item-info">
+                            <strong>${escapeHtml(student.full_name)}</strong>
+                            <span>Mã sinh viên: ${escapeHtml(student.student_id)}</span>
+                        </div>
+                        <span class="badge ${student.face_registered ? 'badge-success' : 'badge-warning'}">
+                            ${student.face_registered ? 'Đã đăng ký khuôn mặt' : 'Chưa đăng ký khuôn mặt'}
+                        </span>
+                    </div>
+                `).join('') : '<p class="text-muted">Lớp chưa có sinh viên.</p>';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function initializeTeacherDashboard() {
+            try {
+                const { user } = await apiFetch('/api/auth/me');
+                if (user.role !== 'teacher') {
+                    window.location.replace('/admin.html');
+                    return;
+                }
+                const classes = await apiFetch('/api/classes');
+                const list = document.getElementById('teacherClassList');
+                if (!classes.length) {
+                    list.innerHTML = '<p class="text-muted">Bạn chưa được phân công lớp nào. Vui lòng liên hệ quản trị viên.</p>';
+                    return;
+                }
+                list.innerHTML = classes.map(item => `
+                    <button type="button" class="class-list-item teacher-class-item" data-class-name="${escapeHtml(item.class_name)}">
+                        <strong>${escapeHtml(item.class_name)}</strong>
+                        <span>Camera: ${escapeHtml(item.camera_source || 'Chưa cấu hình')}</span>
+                    </button>
+                `).join('');
+                list.querySelectorAll('.teacher-class-item').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const item = classes.find(entry => entry.class_name === button.dataset.className);
+                        selectTeacherClass(item.class_name, item.camera_source);
+                    });
+                });
+                await selectTeacherClass(classes[0].class_name, classes[0].camera_source);
+            } catch (error) {
+                if (error.status === 401) {
+                    window.location.replace('/login?next=%2Fteacher.html');
+                    return;
+                }
+                showToast(error.message, 'error');
+            }
+        }
+
+        initializeTeacherDashboard();
+    </script>
+</body>
+</html>

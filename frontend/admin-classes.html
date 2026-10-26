@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý lớp học, nguồn camera và phân công">
+    <title>AI Biometrics - Lớp và camera</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand"><div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div><div><h1>AI Biometrics</h1><span class="brand-sub">Khu vực quản trị</span></div></div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/admin.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Tổng quan</span></a></li>
+                <li class="nav-item"><a href="/admin-teachers.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Tài khoản giảng viên</span></a></li>
+                <li class="nav-item"><a href="/admin-classes.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="business-outline" aria-hidden="true"></ion-icon></span><span>Lớp &amp; camera</span></a></li>
+                <li class="nav-item"><a href="/admin-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="school-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/admin-schedules.html" class="nav-link"><span class="nav-icon"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon></span><span>Lịch học</span></a></li>
+                <li class="nav-item"><a href="/admin-settings.html" class="nav-link"><span class="nav-icon"><ion-icon name="options-outline" aria-hidden="true"></ion-icon></span><span>Cấu hình hệ thống</span></a></li>
+                <li class="nav-item"><a href="/admin-audit.html" class="nav-link"><span class="nav-icon"><ion-icon name="list-outline" aria-hidden="true"></ion-icon></span><span>Nhật ký hoạt động</span></a></li>
+                <li class="nav-item"><a href="/admin-backup.html" class="nav-link"><span class="nav-icon"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></span><span>Sao lưu</span></a></li>
+            </ul>
+            <div class="sidebar-footer"><div class="system-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span></div></div>
+        </aside>
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <div class="page-header"><div><h2 class="page-title">Lớp học &amp; camera</h2><p class="page-subtitle">Cấu hình nguồn camera và phân công giảng viên cho từng lớp.</p></div></div>
+            <section class="card mb-lg">
+                <div class="card-header"><h3 class="card-title">Cấu hình lớp</h3></div>
+                <form id="classConfigForm" class="admin-form" onsubmit="saveClassConfig(event)">
+                    <input type="text" id="cfgClassName" class="form-input" placeholder="Tên lớp (VD: CNTT1)" aria-label="Tên lớp" required>
+                    <input type="text" id="cfgCameraSource" class="form-input" placeholder="Nguồn camera (0 hoặc rtsp://...)" aria-label="Nguồn camera" required>
+                    <select id="cfgInstructor" class="form-input" aria-label="Giảng viên phụ trách"><option value="">Chưa phân công</option></select>
+                    <input type="text" id="cfgRoom" class="form-input" placeholder="Phòng học" aria-label="Phòng học">
+                    <button type="submit" class="btn btn-primary">Lưu cấu hình lớp</button>
+                </form>
+            </section>
+            <section class="card">
+                <div class="card-header"><h3 class="card-title">Danh sách lớp đã cấu hình</h3><button class="btn btn-outline" type="button" onclick="loadClasses()">Làm mới</button></div>
+                <div id="classList" class="admin-class-list"><p class="text-muted">Đang tải lớp...</p></div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function loadClasses() {
+            try {
+                const [classes, teacherData] = await Promise.all([apiFetch('/api/classes'), apiFetch('/api/auth/teachers')]);
+                const instructors = teacherData.teachers.filter(teacher => teacher.is_active);
+                const select = document.getElementById('cfgInstructor');
+                const selected = select.value;
+                select.innerHTML = '<option value="">Chưa phân công</option>' + instructors.map(teacher =>
+                    `<option value="${escapeHtml(teacher.user_id)}">${escapeHtml(teacher.full_name)} (${escapeHtml(teacher.user_id)})</option>`
+                ).join('');
+                if (selected) select.value = selected;
+                document.getElementById('classList').innerHTML = classes.length ? classes.map(item => `
+                    <div class="admin-class-item"><strong>${escapeHtml(item.class_name)}</strong>
+                    <div>Camera: ${escapeHtml(item.camera_source || '--')} · GV: ${escapeHtml(item.instructor || 'Chưa phân công')} · Phòng: ${escapeHtml(item.room || '--')}</div></div>
+                `).join('') : '<p class="text-muted">Chưa có lớp nào.</p>';
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function saveClassConfig(event) {
+            event.preventDefault();
+            const data = {
+                class_name: document.getElementById('cfgClassName').value.trim(),
+                camera_source: document.getElementById('cfgCameraSource').value.trim(),
+                instructor: document.getElementById('cfgInstructor').value || null,
+                room: document.getElementById('cfgRoom').value.trim() || null,
+            };
+            try {
+                await apiPost('/api/classes', data);
+                showToast('Lưu cấu hình lớp thành công!', 'success');
+                event.target.reset();
+                await loadClasses();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        loadClasses();
+    </script>
+</body>
+</html>

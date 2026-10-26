@@ -1,0 +1,23 @@
+# AI models
+backend/models/buffalo_l.zip
+backend/models/buffalo_l/*.onnx
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Environment variables
+.env
+.env.*
+
+# Keep example environment configuration
+!.env.example
+
+# Virtual environments
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+.hermes/

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý lịch học">
+    <title>AI Biometrics - Lịch học</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand"><div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div><div><h1>AI Biometrics</h1><span class="brand-sub">Khu vực quản trị</span></div></div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/admin.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Tổng quan</span></a></li>
+                <li class="nav-item"><a href="/admin-teachers.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Tài khoản giảng viên</span></a></li>
+                <li class="nav-item"><a href="/admin-classes.html" class="nav-link"><span class="nav-icon"><ion-icon name="business-outline" aria-hidden="true"></ion-icon></span><span>Lớp &amp; camera</span></a></li>
+                <li class="nav-item"><a href="/admin-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="school-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/admin-schedules.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon></span><span>Lịch học</span></a></li>
+                <li class="nav-item"><a href="/admin-settings.html" class="nav-link"><span class="nav-icon"><ion-icon name="options-outline" aria-hidden="true"></ion-icon></span><span>Cấu hình hệ thống</span></a></li>
+                <li class="nav-item"><a href="/admin-audit.html" class="nav-link"><span class="nav-icon"><ion-icon name="list-outline" aria-hidden="true"></ion-icon></span><span>Nhật ký hoạt động</span></a></li>
+                <li class="nav-item"><a href="/admin-backup.html" class="nav-link"><span class="nav-icon"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></span><span>Sao lưu</span></a></li>
+            </ul>
+            <div class="sidebar-footer"><div class="system-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span></div></div>
+        </aside>
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <div class="page-header"><div><h2 class="page-title">Lịch học</h2><p class="page-subtitle">Tạo lịch theo lớp và phân công giảng viên phụ trách.</p></div></div>
+            <section class="card mb-lg">
+                <div class="card-header"><h3 class="card-title">Tạo lịch học</h3></div>
+                <form id="scheduleForm" class="admin-form" onsubmit="createSchedule(event)">
+                    <select class="form-input" id="scheduleClass" aria-label="Lớp học" required></select>
+                    <input class="form-input" id="scheduleCourse" placeholder="Tên môn học" aria-label="Tên môn học" required>
+                    <select class="form-input" id="scheduleInstructor" aria-label="Giảng viên phụ trách"></select>
+                    <input class="form-input" id="scheduleRoom" placeholder="Phòng học" aria-label="Phòng học">
+                    <label class="form-label" for="scheduleStart">Bắt đầu</label>
+                    <input class="form-input" id="scheduleStart" type="datetime-local" required>
+                    <label class="form-label" for="scheduleEnd">Kết thúc</label>
+                    <input class="form-input" id="scheduleEnd" type="datetime-local" required>
+                    <button class="btn btn-primary" type="submit">Tạo lịch</button>
+                </form>
+            </section>
+            <section class="card">
+                <div class="card-header"><h3 class="card-title">Lịch đã tạo</h3><button class="btn btn-outline" type="button" onclick="loadSchedules()">Làm mới</button></div>
+                <div id="scheduleList" class="admin-class-list"><p class="text-muted">Đang tải lịch học...</p></div>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function loadScheduleOptions() {
+            try {
+                const [classes, teacherData] = await Promise.all([apiFetch('/api/classes'), apiFetch('/api/auth/teachers')]);
+                document.getElementById('scheduleClass').innerHTML = classes.map(item =>
+                    `<option value="${escapeHtml(item.class_name)}">${escapeHtml(item.class_name)}</option>`
+                ).join('') || '<option value="">Chưa có lớp nào</option>';
+                document.getElementById('scheduleInstructor').innerHTML = '<option value="">Theo phân công lớp</option>' +
+                    teacherData.teachers.filter(item => item.is_active).map(teacher =>
+                        `<option value="${escapeHtml(teacher.user_id)}">${escapeHtml(teacher.full_name)} (${escapeHtml(teacher.user_id)})</option>`
+                    ).join('');
+                if (!classes.length) document.querySelector('#scheduleForm button[type="submit"]').disabled = true;
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function loadSchedules() {
+            try {
+                const data = await apiFetch('/api/schedules');
+                const list = document.getElementById('scheduleList');
+                list.innerHTML = data.schedules.length ? data.schedules.map(item => `
+                    <div class="admin-class-item">
+                        <strong>${escapeHtml(item.course_name)} · ${escapeHtml(item.class_name)}</strong>
+                        <div>${new Date(item.start_time).toLocaleString('vi-VN')} – ${new Date(item.end_time).toLocaleString('vi-VN')} · ${escapeHtml(item.instructor || 'Theo phân công lớp')} · ${escapeHtml(item.room || 'Chưa có phòng')}</div>
+                        <button class="btn btn-outline archive-schedule-btn" type="button" data-schedule-id="${item.id}">Lưu trữ lịch</button>
+                    </div>
+                `).join('') : '<p class="text-muted">Chưa có lịch học.</p>';
+                list.querySelectorAll('.archive-schedule-btn').forEach(button => button.addEventListener('click', () => archiveSchedule(button.dataset.scheduleId)));
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function createSchedule(event) {
+            event.preventDefault();
+            const body = {
+                class_name: document.getElementById('scheduleClass').value,
+                course_name: document.getElementById('scheduleCourse').value.trim(),
+                instructor: document.getElementById('scheduleInstructor').value || null,
+                room: document.getElementById('scheduleRoom').value.trim() || null,
+                start_time: document.getElementById('scheduleStart').value,
+                end_time: document.getElementById('scheduleEnd').value,
+            };
+            try {
+                const result = await apiPost('/api/schedules', body);
+                showToast(result.message, 'success');
+                event.target.reset();
+                await loadSchedules();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function archiveSchedule(scheduleId) {
+            if (!confirm('Lưu trữ lịch học này?')) return;
+            try {
+                const result = await apiFetch(`/api/schedules/${encodeURIComponent(scheduleId)}`, { method: 'DELETE' });
+                showToast(result.message, 'success');
+                await loadSchedules();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        loadScheduleOptions();
+        loadSchedules();
+    </script>
+</body>
+</html>

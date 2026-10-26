@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual Environment
+venv/
+.env
+
+# AI Models (large files)
+models/*.onnx
+models/*.pth
+models/*.bin
+!models/.gitkeep
+
+# Data
+data/faces/*
+!data/faces/.gitkeep
+data/faiss_index/*
+!data/faiss_index/.gitkeep
+data/logs/*
+!data/logs/.gitkeep
+data/*.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Quản lý sinh viên và đăng ký khuôn mặt">
+    <title>AI Biometrics - Quản lý Sinh viên</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div>
+                <div>
+                    <h1>AI Biometrics</h1>
+                    <span class="brand-sub">Attendance System</span>
+                </div>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/admin.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Tổng quan</span></a></li>
+                <li class="nav-item"><a href="/admin-teachers.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Tài khoản giảng viên</span></a></li>
+                <li class="nav-item"><a href="/admin-classes.html" class="nav-link"><span class="nav-icon"><ion-icon name="business-outline" aria-hidden="true"></ion-icon></span><span>Lớp &amp; camera</span></a></li>
+                <li class="nav-item"><a href="/admin-students.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="school-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/admin-schedules.html" class="nav-link"><span class="nav-icon"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon></span><span>Lịch học</span></a></li>
+                <li class="nav-item"><a href="/admin-settings.html" class="nav-link"><span class="nav-icon"><ion-icon name="options-outline" aria-hidden="true"></ion-icon></span><span>Cấu hình hệ thống</span></a></li>
+                <li class="nav-item"><a href="/admin-audit.html" class="nav-link"><span class="nav-icon"><ion-icon name="list-outline" aria-hidden="true"></ion-icon></span><span>Nhật ký hoạt động</span></a></li>
+                <li class="nav-item"><a href="/admin-backup.html" class="nav-link"><span class="nav-icon"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></span><span>Sao lưu</span></a></li>
+            </ul>
+            <div class="sidebar-footer">
+                <div class="system-status"><span class="status-dot"></span><span>Hệ thống hoạt động</span></div>
+            </div>
+        </aside>
+        
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            
+            <div class="page-header">
+                <div>
+                    <h2 class="page-title"><span class="title-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span>Quản lý Sinh viên</h2>
+                    <p class="page-subtitle">Quản lý hồ sơ, dữ liệu khuôn mặt và quyền truy cập theo lớp</p>
+                </div>
+                <div class="flex gap-sm">
+                    <a class="btn btn-outline" href="/api/students/export/csv"><ion-icon name="download-outline" aria-hidden="true"></ion-icon> Xuất CSV</a>
+                    <button class="btn btn-primary" onclick="showAddModal()"><ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> Thêm Sinh viên</button>
+                </div>
+            </div>
+
+            <!-- Stats -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon purple"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="totalCount">--</div>
+                        <div class="stat-label">Tổng sinh viên</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="registeredCount">--</div>
+                        <div class="stat-label">Đã đăng ký Face</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon amber"><ion-icon name="time-outline" aria-hidden="true"></ion-icon></div>
+                    <div class="stat-info">
+                        <div class="stat-value" id="pendingCount">--</div>
+                        <div class="stat-label">Chưa đăng ký Face</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Table -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title"><ion-icon name="list-outline" aria-hidden="true"></ion-icon> Danh sách Sinh viên</h3>
+                    <div class="flex gap-sm">
+                        <select class="form-select" id="filterFace" onchange="loadStudents()" style="width:auto; padding:0.4rem 0.8rem; font-size:0.85rem;">
+                            <option value="">Tất cả</option>
+                            <option value="true">Đã đăng ký Face</option>
+                            <option value="false">Chưa đăng ký</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Mã SV</th>
+                                <th>Họ tên</th>
+                                <th>Lớp</th>
+                                <th>Khoa</th>
+                                <th>Face</th>
+                                <th>Hành động</th>
+                            </tr>
+                        </thead>
+                        <tbody id="studentTableBody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted" style="padding:2rem;">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Student Modal -->
+    <div class="modal-backdrop" id="addModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title"><ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> Thêm Sinh viên</h3>
+                <button class="modal-close" aria-label="Đóng" onclick="hideAddModal()"><ion-icon name="close-outline" aria-hidden="true"></ion-icon></button>
+            </div>
+            <form id="addStudentForm" onsubmit="addStudent(event)">
+                <div class="form-group">
+                    <label class="form-label">Mã sinh viên *</label>
+                    <input type="text" class="form-input" name="student_id" required placeholder="VD: SV001">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Họ và tên *</label>
+                    <input type="text" class="form-input" name="full_name" required placeholder="Nguyen Van A">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Lớp</label>
+                    <input type="text" class="form-input" name="class_name" placeholder="CNTT-K45">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Khoa</label>
+                    <input type="text" class="form-input" name="department" placeholder="Công nghệ thông tin">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" name="email" placeholder="email@example.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Số điện thoại</label>
+                    <input type="tel" class="form-input" name="phone">
+                </div>
+                <div class="flex gap-sm" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="hideAddModal()">Hủy</button>
+                    <button type="submit" class="btn btn-primary">Thêm</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Register Face Modal -->
+    <div class="modal-backdrop" id="faceModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title"><ion-icon name="scan-outline" aria-hidden="true"></ion-icon> Đăng ký khuôn mặt</h3>
+                <button class="modal-close" aria-label="Đóng" onclick="hideFaceModal()"><ion-icon name="close-outline" aria-hidden="true"></ion-icon></button>
+            </div>
+            <p class="text-muted mb-md" id="faceModalInfo">Sinh viên: --</p>
+            <form id="registerFaceForm" onsubmit="registerFace(event)" enctype="multipart/form-data">
+                <input type="hidden" name="student_id" id="faceStudentId">
+                <div class="form-group">
+                    <label class="form-label">Upload ảnh khuôn mặt (1-5 ảnh)</label>
+                    <input type="file" class="form-input" name="files" multiple accept="image/*" required
+                        style="padding:0.8rem;"
+                        onchange="previewImages(this)">
+                    <p class="text-muted mt-sm" style="font-size:0.8rem;">
+                        <ion-icon name="bulb-outline" aria-hidden="true"></ion-icon> Nên tải lên 3-5 ảnh với các góc khác nhau để tăng độ chính xác
+                    </p>
+                </div>
+                <div id="imagePreview" class="flex gap-sm mb-md" style="flex-wrap:wrap;"></div>
+                <div class="flex gap-sm" style="justify-content:flex-end;">
+                    <button type="button" class="btn btn-outline" onclick="hideFaceModal()">Hủy</button>
+                    <button type="submit" class="btn btn-success" id="btnRegFace"><ion-icon name="scan-outline" aria-hidden="true"></ion-icon> Đăng ký</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script>
+        const STUDENT_ID_RE = /^[A-Za-z0-9]+$/;
+        async function loadStudents() {
+            try {
+                const filter = document.getElementById('filterFace').value;
+                let endpoint = '/api/students/?limit=200';
+                if (filter) endpoint += `&face_registered=${filter}`;
+
+                const data = await apiFetch(endpoint);
+
+                const tbody = document.getElementById('studentTableBody');
+                
+                if (!data.students || data.students.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding:2rem;">Chưa có sinh viên nào</td></tr>`;
+                    return;
+                }
+
+                tbody.innerHTML = data.students.map(s => `
+                    <tr>
+                        <td><strong>${escapeHtml(s.student_id)}</strong></td>
+                        <td>${escapeHtml(s.full_name)}</td>
+                        <td>${escapeHtml(s.class_name) || '--'}</td>
+                        <td>${escapeHtml(s.department) || '--'}</td>
+                        <td>
+                            ${s.face_registered 
+                                ? `<span class="badge badge-success"><ion-icon name="checkmark-circle-outline" aria-hidden="true"></ion-icon> Đã đăng ký (${parseInt(s.num_face_images) || 0})</span>`
+                                : '<span class="badge badge-warning"><ion-icon name="time-outline" aria-hidden="true"></ion-icon> Chưa</span>'
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-outline edit-student-btn" type="button" data-student-id="${escapeHtml(s.student_id)}" style="font-size:0.8rem;padding:0.3rem 0.6rem;">
+                                <ion-icon name="create-outline" aria-hidden="true"></ion-icon> Sửa
+                            </button>
+                            <button class="btn btn-outline register-face-btn" type="button" data-student-id="${escapeHtml(s.student_id)}" data-student-name="${escapeHtml(s.full_name)}" style="font-size:0.8rem;padding:0.3rem 0.6rem;">
+                                <ion-icon name="scan-outline" aria-hidden="true"></ion-icon> Đăng ký Face
+                            </button>
+                            <button class="btn btn-outline deactivate-student-btn" type="button" data-student-id="${escapeHtml(s.student_id)}" style="font-size:0.8rem;padding:0.3rem 0.6rem;">
+                                <ion-icon name="archive-outline" aria-hidden="true"></ion-icon> Lưu trữ
+                            </button>
+                            ${s.face_registered ? `<button class="btn btn-outline delete-face-btn" type="button" data-student-id="${escapeHtml(s.student_id)}" style="font-size:0.8rem;padding:0.3rem 0.6rem;">
+                                <ion-icon name="trash-outline" aria-hidden="true"></ion-icon> Xóa dữ liệu Face
+                            </button>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+                tbody.querySelectorAll('.register-face-btn').forEach(button => {
+                    button.addEventListener('click', () => showFaceModal(button.dataset.studentId, button.dataset.studentName));
+                });
+                tbody.querySelectorAll('.edit-student-btn').forEach(button => {
+                    button.addEventListener('click', () => editStudent(button.dataset.studentId));
+                });
+                tbody.querySelectorAll('.deactivate-student-btn').forEach(button => {
+                    button.addEventListener('click', () => deactivateStudent(button.dataset.studentId));
+                });
+                tbody.querySelectorAll('.delete-face-btn').forEach(button => {
+                    button.addEventListener('click', () => deleteFaceData(button.dataset.studentId));
+                });
+
+                // Update stats
+                const total = data.students.length;
+                const registered = data.students.filter(s => s.face_registered).length;
+                document.getElementById('totalCount').textContent = total;
+                document.getElementById('registeredCount').textContent = registered;
+                document.getElementById('pendingCount').textContent = total - registered;
+
+            } catch (err) {
+                console.error('Load students error:', err);
+                showToast('Lỗi tải danh sách sinh viên', 'error');
+            }
+        }
+
+        async function deactivateStudent(studentId) {
+            if (!confirm(`Lưu trữ ${studentId}? Hồ sơ sẽ bị ẩn và ảnh/vector khuôn mặt của sinh viên sẽ bị xóa khỏi hệ thống hoạt động.`)) return;
+            try {
+                const result = await apiFetch(`/api/students/${encodeURIComponent(studentId)}`, { method: 'DELETE' });
+                showToast(result.message, 'success');
+                await loadStudents();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function deleteFaceData(studentId) {
+            if (!confirm(`Xóa ảnh và vector khuôn mặt của ${studentId}? Các bản sao lưu đã tải xuống không bị xóa.`)) return;
+            try {
+                const result = await apiFetch(`/api/students/${encodeURIComponent(studentId)}/face`, { method: 'DELETE' });
+                showToast(result.message, 'success');
+                await loadStudents();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function addStudent(event) {
+            event.preventDefault();
+            const form = new FormData(event.target);
+            const studentId = String(editingStudentId || form.get('student_id') || '').trim();
+
+            if (!studentId || !STUDENT_ID_RE.test(studentId)) {
+                showToast('Mã sinh viên chỉ được chứa chữ cái và số, không được để trống', 'error');
+                return;
+            }
+
+            try {
+                if (editingStudentId) {
+                    await apiFetch(`/api/students/${encodeURIComponent(editingStudentId)}`, { method: 'PUT', body: form });
+                    showToast(`Đã cập nhật sinh viên ${escapeHtml(studentId)}`, 'success');
+                } else {
+                    await apiPostForm('/api/students/', form);
+                    showToast(`Đã thêm sinh viên ${escapeHtml(studentId)}`, 'success');
+                }
+                editingStudentId = null;
+                hideAddModal();
+                event.target.reset();
+                loadStudents();
+            } catch (err) {
+                showToast(err.message || 'Lỗi kết nối', 'error');
+            }
+        }
+
+        let editingStudentId = null;
+
+        async function editStudent(studentId) {
+            try {
+                const student = await apiFetch(`/api/students/${encodeURIComponent(studentId)}`);
+                const form = document.getElementById('addStudentForm');
+                form.elements.student_id.value = student.student_id;
+                form.elements.student_id.disabled = true;
+                form.elements.full_name.value = student.full_name;
+                form.elements.class_name.value = student.class_name || '';
+                form.elements.department.value = student.department || '';
+                form.elements.email.value = student.email || '';
+                form.elements.phone.value = student.phone || '';
+                editingStudentId = studentId;
+                document.querySelector('#addModal .modal-title').innerHTML = '<ion-icon name="create-outline" aria-hidden="true"></ion-icon> Chỉnh sửa sinh viên';
+                document.querySelector('#addStudentForm button[type="submit"]').textContent = 'Lưu thay đổi';
+                showAddModal();
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function registerFace(event) {
+            event.preventDefault();
+            const form = new FormData(event.target);
+            const studentId = form.get('student_id');
+            
+            document.getElementById('btnRegFace').innerHTML = '<ion-icon name="hourglass-outline" aria-hidden="true"></ion-icon> Đang xử lý...';
+            document.getElementById('btnRegFace').disabled = true;
+            
+            try {
+                const data = await apiPostForm(`/api/students/${encodeURIComponent(studentId)}/register-face`, form);
+                showToast(data.message, 'success');
+                hideFaceModal();
+                loadStudents();
+            } catch (err) {
+                showToast(err.message || 'Lỗi đăng ký', 'error');
+            } finally {
+                document.getElementById('btnRegFace').innerHTML = '<ion-icon name="scan-outline" aria-hidden="true"></ion-icon> Đăng ký';
+                document.getElementById('btnRegFace').disabled = false;
+            }
+        }
+
+        function previewImages(input) {
+            const preview = document.getElementById('imagePreview');
+            preview.innerHTML = '';
+            [...input.files].forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:var(--radius-md);border:2px solid var(--border);';
+                    preview.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function showAddModal() {
+            if (!editingStudentId) {
+                const form = document.getElementById('addStudentForm');
+                form.reset();
+                form.elements.student_id.disabled = false;
+                document.querySelector('#addModal .modal-title').innerHTML = '<ion-icon name="person-add-outline" aria-hidden="true"></ion-icon> Thêm Sinh viên';
+                document.querySelector('#addStudentForm button[type="submit"]').textContent = 'Thêm';
+            }
+            document.getElementById('addModal').classList.add('active');
+        }
+        function hideAddModal() {
+            document.getElementById('addModal').classList.remove('active');
+            editingStudentId = null;
+            const form = document.getElementById('addStudentForm');
+            form.reset();
+            form.elements.student_id.disabled = false;
+        }
+        function showFaceModal(id, name) {
+            document.getElementById('faceStudentId').value = id;
+            document.getElementById('faceModalInfo').textContent = `Sinh viên: ${id} - ${name}`;
+            document.getElementById('imagePreview').innerHTML = '';
+            document.getElementById('registerFaceForm').reset();
+            document.getElementById('faceStudentId').value = id;
+            document.getElementById('faceModal').classList.add('active');
+        }
+        function hideFaceModal() { document.getElementById('faceModal').classList.remove('active'); }
+
+        // Load on page ready
+        loadStudents();
+    </script>
+</body>
+</html>

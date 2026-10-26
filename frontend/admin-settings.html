@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Cấu hình ngưỡng nhận diện và điểm danh">
+    <title>AI Biometrics - Cấu hình hệ thống</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script type="module" src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.4.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+    <div class="app-layout">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-brand"><div class="brand-icon"><ion-icon name="finger-print-outline" aria-hidden="true"></ion-icon></div><div><h1>AI Biometrics</h1><span class="brand-sub">Khu vực quản trị</span></div></div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="/admin.html" class="nav-link"><span class="nav-icon"><ion-icon name="grid-outline" aria-hidden="true"></ion-icon></span><span>Tổng quan</span></a></li>
+                <li class="nav-item"><a href="/admin-teachers.html" class="nav-link"><span class="nav-icon"><ion-icon name="people-outline" aria-hidden="true"></ion-icon></span><span>Tài khoản giảng viên</span></a></li>
+                <li class="nav-item"><a href="/admin-classes.html" class="nav-link"><span class="nav-icon"><ion-icon name="business-outline" aria-hidden="true"></ion-icon></span><span>Lớp &amp; camera</span></a></li>
+                <li class="nav-item"><a href="/admin-students.html" class="nav-link"><span class="nav-icon"><ion-icon name="school-outline" aria-hidden="true"></ion-icon></span><span>Sinh viên</span></a></li>
+                <li class="nav-item"><a href="/admin-schedules.html" class="nav-link"><span class="nav-icon"><ion-icon name="calendar-outline" aria-hidden="true"></ion-icon></span><span>Lịch học</span></a></li>
+                <li class="nav-item"><a href="/admin-settings.html" class="nav-link active" aria-current="page"><span class="nav-icon"><ion-icon name="options-outline" aria-hidden="true"></ion-icon></span><span>Cấu hình hệ thống</span></a></li>
+                <li class="nav-item"><a href="/admin-audit.html" class="nav-link"><span class="nav-icon"><ion-icon name="list-outline" aria-hidden="true"></ion-icon></span><span>Nhật ký hoạt động</span></a></li>
+                <li class="nav-item"><a href="/admin-backup.html" class="nav-link"><span class="nav-icon"><ion-icon name="cloud-download-outline" aria-hidden="true"></ion-icon></span><span>Sao lưu</span></a></li>
+            </ul>
+            <div class="sidebar-footer"><div class="system-status"><span class="status-dot"></span><span>Hệ thống sẵn sàng</span></div></div>
+        </aside>
+        <main class="main-content">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="Mở menu điều hướng"><ion-icon name="menu-outline" aria-hidden="true"></ion-icon></button>
+            <div class="page-header"><div><h2 class="page-title">Cấu hình hệ thống</h2><p class="page-subtitle">Điều chỉnh ngưỡng nhận diện và quy tắc tính đi trễ.</p></div></div>
+            <section class="card">
+                <form class="admin-form" onsubmit="saveRuntimeSettings(event)">
+                    <label class="form-label" for="recognitionThreshold">Ngưỡng nhận diện khuôn mặt (0.10–0.99)</label>
+                    <input class="form-input" id="recognitionThreshold" type="number" min="0.1" max="0.99" step="0.01" required>
+                    <label class="form-label" for="detectionThreshold">Ngưỡng phát hiện khuôn mặt (0.10–0.99)</label>
+                    <input class="form-input" id="detectionThreshold" type="number" min="0.1" max="0.99" step="0.01" required>
+                    <label class="form-label" for="lateMinutes">Số phút sau giờ bắt đầu để tính đi trễ (0–120)</label>
+                    <input class="form-input" id="lateMinutes" type="number" min="0" max="120" step="1" required>
+                    <button class="btn btn-primary" type="submit">Lưu cấu hình</button>
+                </form>
+            </section>
+        </main>
+    </div>
+    <script src="/static/js/api.js"></script>
+    <script>
+        async function loadRuntimeSettings() {
+            try {
+                const values = await apiFetch('/api/admin/settings');
+                document.getElementById('recognitionThreshold').value = values.face_recognition_threshold;
+                document.getElementById('detectionThreshold').value = values.face_detection_threshold;
+                document.getElementById('lateMinutes').value = values.attendance_late_minutes;
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        async function saveRuntimeSettings(event) {
+            event.preventDefault();
+            try {
+                const result = await apiFetch('/api/admin/settings', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        face_recognition_threshold: Number(document.getElementById('recognitionThreshold').value),
+                        face_detection_threshold: Number(document.getElementById('detectionThreshold').value),
+                        attendance_late_minutes: Number(document.getElementById('lateMinutes').value),
+                    }),
+                });
+                showToast(result.message, 'success');
+            } catch (error) {
+                showToast(error.message, 'error');
+            }
+        }
+
+        loadRuntimeSettings();
+    </script>
+</body>
+</html>
